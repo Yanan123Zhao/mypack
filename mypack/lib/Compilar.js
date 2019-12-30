@@ -5,6 +5,8 @@ const traverse = require('@babel/traverse').default
 const types = require('@babel/types')
 const generator = require('@babel/generator').default
 const ejs = require('ejs')
+const {SyncHook} = require('tapable')
+
 
 class Compilar {
   constructor (config) {
@@ -13,6 +15,24 @@ class Compilar {
     this.modules = {}
     this.entryPath = config.entry
     this.root = process.cwd()
+    this.hooks = {
+      entryOptions: new SyncHook(),
+      compile: new SyncHook(),
+      afterCompile: new SyncHook(),
+      afterPlugins: new SyncHook(),
+      run: new SyncHook(),
+      emit: new SyncHook(),
+      done: new SyncHook()
+    }
+
+    const {plugins} = config
+    if (Array.isArray(plugins)) {
+      plugins.forEach(plugin => {
+        plugin.apply(this)
+      })
+    }
+    
+    this.hooks.afterPlugins.call()
   }
   // 读取每个模块的内容
   getModuleSource (modulePath) {
@@ -86,9 +106,14 @@ class Compilar {
   }
 
   run () {
+    this.hooks.run.call()
+    this.hooks.compile.call()
     this.buildModules(path.resolve(this.root, this.entryPath), true)
     // console.log('this', this.modules, this.entryId)
+    this.hooks.afterCompile.call()
+    this.hooks.emit.call()
     this.emitFile()
+    this.hooks.done.call()
   }
 }
 

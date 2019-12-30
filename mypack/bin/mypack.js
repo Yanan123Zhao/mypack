@@ -5,5 +5,5 @@ const Compilar = require('../lib/Compilar.js')
 const configFile = require(process.cwd() + '/webpack.config.js')
 
 const compilar = new Compilar(configFile)
-
+compilar.hooks.entryOptions.call()
 compilar.run()
